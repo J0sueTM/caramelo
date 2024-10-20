@@ -1,3 +1,6 @@
 [submodule "vendor/log.c"]
 	path = vendor/log.c
 	url = https://github.com/rxi/log.c.git
+[submodule "vendor/x11"]
+	path = vendor/x11
+	url = https://github.com/mirror/libX11.git
