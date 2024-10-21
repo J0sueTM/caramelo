@@ -1,11 +1,15 @@
+#include <stdlib.h>
+
 #include "../src/caramelo.h"
-#include <unistd.h>
 
 int main(void) {
   CrmWindow win = {0};
   win.w = 800;
   win.h = 500;
-  crm_init_window(&win);
+  if (!crm_init_window(&win)) {
+    log_fatal("Failed to start camarelo :(");
+    exit(1);
+  }
 
   crm_deinit_window(&win);
 }

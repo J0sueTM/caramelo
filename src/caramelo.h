@@ -21,6 +21,7 @@ typedef struct {
   Atom wm_delete;
   GLXFBConfig glx_fb_cfg;
   GLXContext glx_ctx;
+  Colormap xcolormap;
 
   char *title;
   int w, h;
@@ -40,7 +41,7 @@ typedef GLXContext (*glXCreateContextAttribsARBProc)(
   const int*
 );
 
-void crm_init_window(CrmWindow *win);
+bool crm_init_window(CrmWindow *win);
 void crm_deinit_window(CrmWindow *win);
 bool crm_is_glx_version_ok(CrmWindow *win);
 void crm_resize_window(CrmWindow *win, int w, int h);

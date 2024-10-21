@@ -1,6 +1,5 @@
 #include "./caramelo.h"
 
-
 GLXFBConfig crm_get_best_glx_fb_cfg(
   CrmWindow *win,
   GLXFBConfig *fb_cfgs,
@@ -103,19 +102,21 @@ expected %d",
 }
 
 bool crm_setup_window(CrmWindow *win) {
-	XSetWindowAttributes win_attribs;
-	win_attribs.border_pixel = BlackPixel(win->xdisplay, win->xscreen);
-	win_attribs.background_pixel = WhitePixel(
-    win->xdisplay,
-    win->xscreen
-  );
-	win_attribs.override_redirect = true;
-	win_attribs.colormap = XCreateColormap(
+  win->xcolormap = XCreateColormap(
     win->xdisplay,
     RootWindow(win->xdisplay, win->xscreen),
     win->xvisual_info->visual,
     AllocNone
   );
+
+	XSetWindowAttributes win_attribs;
+	win_attribs.border_pixel = BlackPixel(win->xdisplay, win->xscreen);
+	win_attribs.background_pixel = BlackPixel(
+    win->xdisplay,
+    win->xscreen
+  );
+	win_attribs.override_redirect = true;
+	win_attribs.colormap = win->xcolormap;
 	win_attribs.event_mask = ExposureMask | StructureNotifyMask;
 
 	win->xwin = XCreateWindow(
@@ -136,8 +137,8 @@ bool crm_setup_window(CrmWindow *win) {
   }
 
   XStoreName(win->xdisplay, win->xwin, win->title);
-  XClearWindow(win->xdisplay, win->xwin);
   XMapWindow(win->xdisplay, win->xwin);
+  XClearWindow(win->xdisplay, win->xwin);
 
   win->wm_delete = XInternAtom(
     win->xdisplay,
@@ -201,11 +202,46 @@ bool crm_setup_glx_ctx(CrmWindow *win) {
   return true;
 }
 
-void crm_init_window(CrmWindow *win) {
+bool crm_handle_window_evts(CrmWindow *win) {
+  if (XPending(win->xdisplay) <= 0) {
+    goto skip_evt_handling;
+  }
+
+  static XEvent evt;
+  XNextEvent(win->xdisplay, &evt);
+  switch (evt.type) {
+  case ClientMessage: {
+    if (evt.xclient.data.l[0] == win->wm_delete) {
+      win->is_open = false;
+
+    }
+  } break;
+  case ConfigureNotify: {
+    XConfigureEvent cfg_evt = evt.xconfigure;
+    if (cfg_evt.width != win->w || cfg_evt.height != win->h) {
+      crm_resize_window(win, cfg_evt.width, cfg_evt.height);
+    }
+  }
+  default: {
+  } break;
+  }
+
+skip_evt_handling:
+  return true;
+}
+
+bool crm_render_window(CrmWindow *win) {
+  glClear(GL_COLOR_BUFFER_BIT);
+  glXSwapBuffers(win->xdisplay, win->xwin);
+
+  return true;
+}
+
+bool crm_init_window(CrmWindow *win) {
   win->xdisplay = XOpenDisplay(NULL);
   if (!win->xdisplay) {
     log_fatal("Failed to start X display");
-    return;
+    return false;
   }
   win->xscreen = DefaultScreen(win->xdisplay);
   log_debug("Started X display at screen %d", win->xscreen);
@@ -217,55 +253,35 @@ void crm_init_window(CrmWindow *win) {
 
   if (!gladLoadGLLoader((GLADloadproc)glXGetProcAddress)) {
     log_fatal("Failed to initialize GLAD");
-    return;
+    return false;
   }
   log_info("Initialized GLAD");
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glClearColor(0.18f, 0.18f, 0.18f, 1.f);
  
   win->is_open = true;
   crm_resize_window(win, win->w, win->h);
-  XEvent evt;
   while (win->is_open) {
-    if (XPending(win->xdisplay) <= 0) {
-      continue;
-    }
-
-    XNextEvent(win->xdisplay, &evt);
-    switch (evt.type) {
-    case ClientMessage: {
-      if (evt.xclient.data.l[0] == win->wm_delete) {
-        win->is_open = false;
-      }
-    } break;
-    case ConfigureNotify: {
-      XConfigureEvent cfg_evt = evt.xconfigure;
-      if (cfg_evt.width != win->w || cfg_evt.height != win->h) {
-        crm_resize_window(win, cfg_evt.width, cfg_evt.height);
-      }
-    }
-    default: {
-    } break;
-    }
-
-    glClear(GL_COLOR_BUFFER_BIT);
-    glXSwapBuffers(win->xdisplay, win->xwin);
+    if (!crm_handle_window_evts(win)) goto force_win_cleanup;
+    if (!crm_render_window(win))      goto force_win_cleanup;
   }
 
-  return;
+  return true;
 
 force_win_cleanup:
   log_warn("Forcefully closing window");
   crm_deinit_window(win);
+
+  return false;
 }
 
 void crm_deinit_window(CrmWindow *win) {
   glXMakeCurrent(win->xdisplay, 0, 0);
   glXDestroyContext(win->xdisplay, win->glx_ctx);
-  XDestroyWindow(win->xdisplay, win->xwin);
+  XFreeColormap(win->xdisplay, win->xcolormap);
 
+  XDestroyWindow(win->xdisplay, win->xwin);
   XSync(win->xdisplay, false);
   XCloseDisplay(win->xdisplay);
   log_info("Closed window");
