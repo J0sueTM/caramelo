@@ -3,6 +3,7 @@
 
 #include "../vendor/log.c/src/log.h"
 #include "../vendor/x11/include/X11/Xlib.h"
+#include "./glad/glad.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -42,5 +43,6 @@ typedef GLXContext (*glXCreateContextAttribsARBProc)(
 void crm_init_window(CrmWindow *win);
 void crm_deinit_window(CrmWindow *win);
 bool crm_is_glx_version_ok(CrmWindow *win);
+void crm_resize_window(CrmWindow *win, int w, int h);
 
 #endif

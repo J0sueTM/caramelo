@@ -1,19 +1,5 @@
 #include "./caramelo.h"
 
-bool crm_is_glx_version_ok(CrmWindow *win) {
-  GLint major, minor = 0;
-	glXQueryVersion(win->xdisplay, &major, &minor);
-	if (major <= 1 && minor < 2) {
-		log_fatal(
-      "GLX v%d.%d outdated. Requires at least v1.2",
-      major, minor
-    );
-		return false;
-	}
-  log_debug("GLX v%d.%d available", major, minor);
-
-  return true;
-}
 
 GLXFBConfig crm_get_best_glx_fb_cfg(
   CrmWindow *win,
@@ -130,7 +116,8 @@ bool crm_setup_window(CrmWindow *win) {
     win->xvisual_info->visual,
     AllocNone
   );
-	win_attribs.event_mask = ExposureMask;
+	win_attribs.event_mask = ExposureMask | StructureNotifyMask;
+
 	win->xwin = XCreateWindow(
     win->xdisplay,
     RootWindow(win->xdisplay, win->xscreen),
@@ -149,8 +136,7 @@ bool crm_setup_window(CrmWindow *win) {
   }
 
   XStoreName(win->xdisplay, win->xwin, win->title);
-
-  XSelectInput(win->xdisplay, win->xwin, ExposureMask);
+  XClearWindow(win->xdisplay, win->xwin);
   XMapWindow(win->xdisplay, win->xwin);
 
   win->wm_delete = XInternAtom(
@@ -228,17 +214,44 @@ void crm_init_window(CrmWindow *win) {
   if (!crm_setup_glx(win))         goto force_win_cleanup;
   if (!crm_setup_window(win))      goto force_win_cleanup;
   if (!crm_setup_glx_ctx(win))     goto force_win_cleanup;
+
+  if (!gladLoadGLLoader((GLADloadproc)glXGetProcAddress)) {
+    log_fatal("Failed to initialize GLAD");
+    return;
+  }
+  log_info("Initialized GLAD");
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glClearColor(0.18f, 0.18f, 0.18f, 1.f);
  
   win->is_open = true;
+  crm_resize_window(win, win->w, win->h);
   XEvent evt;
   while (win->is_open) {
-    XNextEvent(win->xdisplay, &evt);
-    if (
-      evt.type == ClientMessage &&
-      evt.xclient.data.l[0] == win->wm_delete
-    ) {
-      win->is_open = false;
+    if (XPending(win->xdisplay) <= 0) {
+      continue;
     }
+
+    XNextEvent(win->xdisplay, &evt);
+    switch (evt.type) {
+    case ClientMessage: {
+      if (evt.xclient.data.l[0] == win->wm_delete) {
+        win->is_open = false;
+      }
+    } break;
+    case ConfigureNotify: {
+      XConfigureEvent cfg_evt = evt.xconfigure;
+      if (cfg_evt.width != win->w || cfg_evt.height != win->h) {
+        crm_resize_window(win, cfg_evt.width, cfg_evt.height);
+      }
+    }
+    default: {
+    } break;
+    }
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    glXSwapBuffers(win->xdisplay, win->xwin);
   }
 
   return;
@@ -251,8 +264,34 @@ force_win_cleanup:
 void crm_deinit_window(CrmWindow *win) {
   glXMakeCurrent(win->xdisplay, 0, 0);
   glXDestroyContext(win->xdisplay, win->glx_ctx);
-
   XDestroyWindow(win->xdisplay, win->xwin);
+
+  XSync(win->xdisplay, false);
   XCloseDisplay(win->xdisplay);
   log_info("Closed window");
+}
+
+bool crm_is_glx_version_ok(CrmWindow *win) {
+  GLint major, minor = 0;
+	glXQueryVersion(win->xdisplay, &major, &minor);
+	if (major <= 1 && minor < 2) {
+		log_fatal(
+      "GLX v%d.%d outdated. Requires at least v1.2",
+      major, minor
+    );
+		return false;
+	}
+  log_debug("GLX v%d.%d available", major, minor);
+
+  return true;
+}
+
+void crm_resize_window(CrmWindow *win, int w, int h) {
+  if (w > 0) {
+    win->w = w;
+  }
+  if (h > 0) {
+    win->h = h;
+  }
+  glViewport(0, 0, win->w, win->h);
 }
