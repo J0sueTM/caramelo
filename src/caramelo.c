@@ -1,20 +1,5 @@
 #include "./caramelo.h"
 
-static const GLint glx_attribs[] = {
-  GLX_X_RENDERABLE,  true,
-  GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-  GLX_RENDER_TYPE,   GLX_RGBA_BIT,
-  GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
-  GLX_RED_SIZE,      8,
-  GLX_GREEN_SIZE,    8,
-  GLX_BLUE_SIZE,     8,
-  GLX_ALPHA_SIZE,    8,
-  GLX_DEPTH_SIZE,    24,
-  GLX_STENCIL_SIZE,  8,
-  GLX_DOUBLEBUFFER,  true,
-  0
-};
-
 bool crm_is_glx_version_ok(CrmWindow *win) {
   GLint major, minor = 0;
 	glXQueryVersion(win->xdisplay, &major, &minor);
@@ -68,6 +53,21 @@ GLXFBConfig crm_get_best_glx_fb_cfg(
 }
 
 bool crm_setup_glx(CrmWindow *win) {
+  const GLint glx_attribs[] = {
+    GLX_X_RENDERABLE,  true,
+    GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+    GLX_RENDER_TYPE,   GLX_RGBA_BIT,
+    GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
+    GLX_RED_SIZE,      8,
+    GLX_GREEN_SIZE,    8,
+    GLX_BLUE_SIZE,     8,
+    GLX_ALPHA_SIZE,    8,
+    GLX_DEPTH_SIZE,    24,
+    GLX_STENCIL_SIZE,  8,
+    GLX_DOUBLEBUFFER,  true,
+    0
+  };
+
   int fb_count;
 	GLXFBConfig *fb_cfgs = glXChooseFBConfig(
     win->xdisplay,
