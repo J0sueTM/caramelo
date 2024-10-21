@@ -3,7 +3,7 @@
 
 #include "../vendor/log.c/src/log.h"
 #include "../vendor/x11/include/X11/Xlib.h"
-#include "./glad/glad.h"
+#include "./renderer.h"
 
 #include <assert.h>
 #include <stdbool.h>

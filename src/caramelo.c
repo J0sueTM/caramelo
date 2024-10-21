@@ -251,14 +251,7 @@ bool crm_init_window(CrmWindow *win) {
   if (!crm_setup_window(win))      goto force_win_cleanup;
   if (!crm_setup_glx_ctx(win))     goto force_win_cleanup;
 
-  if (!gladLoadGLLoader((GLADloadproc)glXGetProcAddress)) {
-    log_fatal("Failed to initialize GLAD");
-    return false;
-  }
-  log_info("Initialized GLAD");
-
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  if (!crm_init_rndr()) goto force_win_cleanup;
  
   win->is_open = true;
   crm_resize_window(win, win->w, win->h);
@@ -297,7 +290,7 @@ bool crm_is_glx_version_ok(CrmWindow *win) {
     );
 		return false;
 	}
-  log_debug("GLX v%d.%d available", major, minor);
+  log_debug("Acquired GLX v%d.%d", major, minor);
 
   return true;
 }
