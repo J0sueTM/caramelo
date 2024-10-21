@@ -7,7 +7,5 @@ int main(void) {
   win.h = 500;
   crm_init_window(&win);
 
-  sleep(5);
-
   crm_deinit_window(&win);
 }

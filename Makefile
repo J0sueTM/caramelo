@@ -29,7 +29,10 @@ EX_TGTS=$(patsubst ${EX_SRC_DIR}/%.c, ${EX_TGT_DIR}/%, ${EX_SRCS})
 DEP_DIRS=${TGT_DIR} ${LIB_DIR} ${OBJ_DIR} ${EX_TGT_DIR}
 DEPS=${DEP_DIRS} ${SUBMODULES}
 
-CC_FLAGS=-L${LIB_DIR} -llog -lX11 -lGL
+CC_FLAGS=-Wall -L${LIB_DIR} -llog -lX11 -lGL
+ifeq ($(DEBUG),true)
+	CC_FLAGS+=-g
+endif
 
 all: ${DEPS} ${VENDOR_LIBS} ${LIB}
 
@@ -71,7 +74,7 @@ examples: ${DEP_DIRS} ${EX_TGTS}
 
 ${EX_TGT_DIR}/%: ${EX_SRC_DIR}/%.c
 	@echo === building example $(notdir $@) ===
-	${CC} -g -o $@ $< -lcaramelo ${CC_FLAGS}
+	${CC} -o $@ $< -lcaramelo ${CC_FLAGS}
 
 ${DEP_DIRS}:
 	@echo === creating dirs ===
