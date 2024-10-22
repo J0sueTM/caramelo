@@ -5,8 +5,8 @@
 #include "../vendor/x11/include/X11/Xlib.h"
 #include "./renderer.h"
 
-#include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <GL/gl.h>
 #include <GL/glx.h>
@@ -23,14 +23,15 @@ typedef struct {
   GLXContext glx_ctx;
   Colormap xcolormap;
 
-  char *title;
-  int w, h;
-  int x, y;
-
   CrmColor border_color;
   CrmColor bg_color;
 
+  char *title;
+  int w, h;
+  int x, y;
   bool is_open;
+
+  CrmRndr rndr;
 } CrmWindow;
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(
@@ -41,7 +42,7 @@ typedef GLXContext (*glXCreateContextAttribsARBProc)(
   const int*
 );
 
-bool crm_init_window(CrmWindow *win);
+CrmWindow *crm_init_window(int width, int height);
 void crm_deinit_window(CrmWindow *win);
 bool crm_is_glx_version_ok(CrmWindow *win);
 void crm_resize_window(CrmWindow *win, int w, int h);

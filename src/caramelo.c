@@ -5,7 +5,7 @@ GLXFBConfig crm_get_best_glx_fb_cfg(
   GLXFBConfig *fb_cfgs,
   int fb_cfg_count
 ) {
-	int best_fb_cfg_id = 0, best_sample_count;
+	int best_fb_cfg_id = 0, best_sample_count = 0;
 	for (int i = 0; i < fb_cfg_count; ++i) {
 		XVisualInfo *visual_info = glXGetVisualFromFBConfig(
       win->xdisplay,
@@ -237,11 +237,21 @@ bool crm_render_window(CrmWindow *win) {
   return true;
 }
 
-bool crm_init_window(CrmWindow *win) {
-  win->xdisplay = XOpenDisplay(NULL);
+CrmWindow *crm_init_window(int width, int height) {
+  CrmWindow *win = (CrmWindow *)calloc(1, sizeof(CrmWindow));
+  if (!win) {
+    log_fatal("Failed to allocate mem for window");
+    goto force_win_cleanup;
+  }
+  win->x = 0;
+  win->y = 0;
+  win->w = width;
+  win->h = height;
+
+  win->xdisplay = XOpenDisplay(0);
   if (!win->xdisplay) {
     log_fatal("Failed to start X display");
-    return false;
+    goto force_win_cleanup;
   }
   win->xscreen = DefaultScreen(win->xdisplay);
   log_debug("Started X display at screen %d", win->xscreen);
@@ -250,8 +260,7 @@ bool crm_init_window(CrmWindow *win) {
   if (!crm_setup_glx(win))         goto force_win_cleanup;
   if (!crm_setup_window(win))      goto force_win_cleanup;
   if (!crm_setup_glx_ctx(win))     goto force_win_cleanup;
-
-  if (!crm_init_rndr()) goto force_win_cleanup;
+  if (!crm_init_rndr(&win->rndr))  goto force_win_cleanup;
  
   win->is_open = true;
   crm_resize_window(win, win->w, win->h);
@@ -260,16 +269,18 @@ bool crm_init_window(CrmWindow *win) {
     if (!crm_render_window(win))      goto force_win_cleanup;
   }
 
-  return true;
+  return win;
 
 force_win_cleanup:
   log_warn("Forcefully closing window");
   crm_deinit_window(win);
 
-  return false;
+  return NULL;
 }
 
 void crm_deinit_window(CrmWindow *win) {
+  crm_deinit_rndr(&win->rndr);
+
   glXMakeCurrent(win->xdisplay, 0, 0);
   glXDestroyContext(win->xdisplay, win->glx_ctx);
   XFreeColormap(win->xdisplay, win->xcolormap);

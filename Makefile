@@ -32,16 +32,18 @@ DEPS=${DEP_DIRS} ${SUBMODULES}
 CC_FLAGS=-Wall -L${LIB_DIR} -llog -lX11 -lGL
 ifeq ($(DEBUG),true)
 	CC_FLAGS+=-g
+else
+	CC_FLAGS+=-O3
 endif
 
 all: ${DEPS} ${VENDOR_LIBS} ${LIB}
 
 ${LIB}: ${OBJS}
-	@echo === building ${TGT_NAME} ===
+	@echo === building $(notdir $(basename $@)) ===
 	${AR} rcs $@ $^
 
 ${OBJ_DIR}/%.o: ${SRC_DIR}/%.c
-	@echo === compiling $(notdir $@) ===
+	@echo === compiling $(notdir $(basename $@)) ===
 	@mkdir -p $(dir $@)
 	${CC} -c $< -o $@ ${CC_FLAGS}
 
@@ -72,7 +74,7 @@ ${SUBMODULES}:
 
 examples: ${DEP_DIRS} ${EX_TGTS}
 
-${EX_TGT_DIR}/%: ${EX_SRC_DIR}/%.c
+${EX_TGT_DIR}/%: ${EX_SRC_DIR}/%.c ${LIB}
 	@echo === building example $(notdir $@) ===
 	${CC} -o $@ $< -lcaramelo ${CC_FLAGS}
 
