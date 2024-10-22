@@ -26,7 +26,13 @@ EX_SRCS=$(shell find ${EX_SRC_DIR} -type f -name *.c)
 EX_TGT_DIR:=${TGT_DIR}/examples
 EX_TGTS=$(patsubst ${EX_SRC_DIR}/%.c, ${EX_TGT_DIR}/%, ${EX_SRCS})
 
-DEP_DIRS=${TGT_DIR} ${LIB_DIR} ${OBJ_DIR} ${EX_TGT_DIR}
+TEST_SRC_DIR:=$(CURDIR)/tests
+TEST_SRCS=$(shell find ${TEST_SRC_DIR} -type f -name *.c ! -name all.c)
+
+TEST_TGT_DIR:=${TGT_DIR}/tests
+TEST_TGTS=$(patsubst ${TEST_SRC_DIR}/%.c, ${TEST_TGT_DIR}/%, ${TEST_SRCS})
+
+DEP_DIRS=${TGT_DIR} ${LIB_DIR} ${OBJ_DIR} ${EX_TGT_DIR} ${TEST_TGT_DIR}
 DEPS=${DEP_DIRS} ${SUBMODULES}
 
 CC_FLAGS=-Wall -L${LIB_DIR} -llog -lX11 -lGL
@@ -77,6 +83,21 @@ examples: ${DEP_DIRS} ${EX_TGTS}
 ${EX_TGT_DIR}/%: ${EX_SRC_DIR}/%.c ${LIB}
 	@echo === building example $(notdir $@) ===
 	${CC} -o $@ $< -lcaramelo ${CC_FLAGS}
+
+tests: ${DEP_DIRS} ${TEST_TGTS}
+
+${TEST_TGT_DIR}/%: ${TEST_SRC_DIR}/%.c ${LIB}
+	@echo === building test $(notdir $@) ===
+	mkdir -p $(dir $@)
+	${CC} -o $@ $< ${VENDOR_DIR}/munit/munit.c -lcaramelo ${CC_FLAGS}
+
+GLOBAL_TEST=${TEST_TGT_DIR}/all
+all-tests: ${DEP_DIRS} ${TEST_TGTS} ${GLOBAL_TEST}
+	./target/tests/all
+
+${GLOBAL_TEST}: ${TEST_SRC_DIR}/all.c
+	@echo === building global test ===
+	${CC} -o $@ $< ${TEST_SRC_DIRS} ${VENDOR_DIR}/munit/munit.c -lcaramelo ${CC_FLAGS}
 
 ${DEP_DIRS}:
 	@echo === creating dirs ===
