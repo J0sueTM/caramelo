@@ -37,6 +37,7 @@ void crm_slurp_file(const char *filename, char *dest) {
       filename,
       fsize
     );
+    log_slurp_error("checking size", filename, fp);
     return;
   } else if (fsize < 0) {
     log_slurp_error("checking size", filename, fp);
