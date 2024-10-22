@@ -13,10 +13,10 @@ void gl_msg_callback(
   (void)user_param;
   log_error(
     "=== GL Callback %s ===\n"
-    "Source:   0x%x"
+    "Source:   0x%x\n"
     "Type:     0x%x\n"
-    "ID:       0x%x"
-    "Severity: 0x%s\n"
+    "ID:       0x%x\n"
+    "Severity: 0x%x\n"
     "Message:  %s",
     src, type, id, severity, msg
   );
