@@ -93,11 +93,11 @@ ${TEST_TGT_DIR}/%: ${TEST_SRC_DIR}/%.c ${LIB}
 
 GLOBAL_TEST=${TEST_TGT_DIR}/all
 all-tests: ${DEP_DIRS} ${TEST_TGTS} ${GLOBAL_TEST}
-	./target/tests/all
+	./target/tests/all --log-visible debug
 
-${GLOBAL_TEST}: ${TEST_SRC_DIR}/all.c
+${GLOBAL_TEST}: ${TEST_SRC_DIR}/all.c ${TEST_SRC_DIRS}
 	@echo === building global test ===
-	${CC} -o $@ $< ${TEST_SRC_DIRS} ${VENDOR_DIR}/munit/munit.c -lcaramelo ${CC_FLAGS}
+	${CC} -o $@ $^ ${VENDOR_DIR}/munit/munit.c -lcaramelo ${CC_FLAGS}
 
 ${DEP_DIRS}:
 	@echo === creating dirs ===

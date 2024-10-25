@@ -3,6 +3,8 @@
 #ifndef CRM_TEST_COMMON_IO_IMPL
 #define CRM_TEST_COMMON_IO_IMPL
 
+#include "../../../src/common/io.h"
+
 MunitResult test_crm_home_dir(
   const MunitParameter params[],
   void *user_data
@@ -10,7 +12,15 @@ MunitResult test_crm_home_dir(
   (void)params;
   (void)user_data;
 
-  return MUNIT_FAIL;
+  setenv("CRM_HOME", "/opt/caramelo", 1);
+  
+  char *dir;
+  long dir_len = crm_home_dir(&dir);
+  munit_assert_long(dir_len, >, 0);
+  munit_assert_string_equal(dir, "/opt/caramelo");
+  free(dir);
+
+  return MUNIT_OK;
 }
 
 MunitTest common_io_tests[] = {

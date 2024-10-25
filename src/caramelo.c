@@ -38,6 +38,8 @@ GLXFBConfig crm_get_best_glx_fb_cfg(
 }
 
 bool crm_setup_glx(CrmWindow *win) {
+  crm_assert_noop(win);
+
   const GLint glx_attribs[] = {
     GLX_X_RENDERABLE,  true,
     GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
@@ -60,20 +62,22 @@ bool crm_setup_glx(CrmWindow *win) {
     glx_attribs,
     &fb_count
   );
-	if (!fb_cfgs) {
-		log_fatal("Failed to retrieve framebuffer config");
-		return false;
-	}
+  crm_assert_msg(
+    fb_cfgs,
+    { return false; },
+    "Failed to retrieve framebuffer config"
+  );
 
   win->glx_fb_cfg = crm_get_best_glx_fb_cfg(
     win,
     fb_cfgs,
     fb_count
   );
-  if (win->glx_fb_cfg <= 0) {
-    log_fatal("Failed to get best framebuffer config");
-    return false;
-  }
+  crm_assert_msg(
+    win->glx_fb_cfg > 0,
+    { return false; },
+    "Failed to get best framebuffer config"
+  );
   XFree(fb_cfgs);
   log_debug("Selected framebuffer config %d", win->glx_fb_cfg);
 
@@ -81,27 +85,27 @@ bool crm_setup_glx(CrmWindow *win) {
     win->xdisplay,
     win->glx_fb_cfg
   );
-	if (!win->xvisual_info) {
-    log_fatal(
-      "Failed to get visual info for framebuffer: %d",
-      win->glx_fb_cfg
-    );
-		return false;
-	} else if (win->xscreen != win->xvisual_info->screen) {
-    log_fatal(
-      "Visual info from framebuffer %d has invalid screen id %d, \
-expected %d",
-      win->glx_fb_cfg,
-      win->xvisual_info->screen,
-      win->xscreen
-    );
-    return false;
-	}
-  
+  crm_assert_msg(
+    win->xvisual_info,
+    { return false; },
+    "Failed to get visual info for framebuffer: %d",
+    win->glx_fb_cfg
+  );
+  crm_assert_msg(
+    win->xscreen == win->xvisual_info->screen,
+    { return false; },
+    "Visual info from framebuffer %d has invalid screen id %d, expected %d",
+    win->glx_fb_cfg,
+    win->xvisual_info->screen,
+    win->xscreen
+  );
+
   return true;
 }
 
 bool crm_setup_window(CrmWindow *win) {
+  crm_assert_noop(win);
+
   win->xcolormap = XCreateColormap(
     win->xdisplay,
     RootWindow(win->xdisplay, win->xscreen),
@@ -152,11 +156,13 @@ bool crm_setup_window(CrmWindow *win) {
 }
 
 bool crm_setup_glx_ctx(CrmWindow *win) {
+  crm_assert_noop(win);
+
 	glXCreateContextAttribsARBProc glXCreateContextAttribsARB =
     (glXCreateContextAttribsARBProc)glXGetProcAddressARB(
       (const GLubyte *)"glXCreateContextAttribsARB"
     );
-	 
+
 	const char *glx_exts = glXQueryExtensionsString(
     win->xdisplay,
     win->xscreen
@@ -182,7 +188,7 @@ bool crm_setup_glx_ctx(CrmWindow *win) {
       GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
       0
     };
-	 
+
 		win->glx_ctx = glXCreateContextAttribsARB(
       win->xdisplay,
       win->glx_fb_cfg,
@@ -202,7 +208,7 @@ bool crm_setup_glx_ctx(CrmWindow *win) {
   return true;
 }
 
-bool crm_handle_window_evts(CrmWindow *win) {
+bool crm_handle_win_evts(CrmWindow *win) {
   if (XPending(win->xdisplay) <= 0) {
     goto skip_evt_handling;
   }
@@ -231,6 +237,7 @@ skip_evt_handling:
 }
 
 bool crm_render_window(CrmWindow *win) {
+  crm_assert_noop(win);
   glClear(GL_COLOR_BUFFER_BIT);
   glXSwapBuffers(win->xdisplay, win->xwin);
 
@@ -239,34 +246,40 @@ bool crm_render_window(CrmWindow *win) {
 
 CrmWindow *crm_init_window(int width, int height) {
   CrmWindow *win = (CrmWindow *)calloc(1, sizeof(CrmWindow));
-  if (!win) {
-    log_fatal("Failed to allocate mem for window");
-    goto force_win_cleanup;
-  }
+  crm_assert(win, { goto force_win_cleanup; });
   win->x = 0;
   win->y = 0;
   win->w = width;
   win->h = height;
 
   win->xdisplay = XOpenDisplay(0);
-  if (!win->xdisplay) {
-    log_fatal("Failed to start X display");
-    goto force_win_cleanup;
-  }
+  crm_assert_msg(
+    win->xdisplay,
+    { goto force_win_cleanup; },
+    "Failed to start X display"
+  );
   win->xscreen = DefaultScreen(win->xdisplay);
   log_debug("Started X display at screen %d", win->xscreen);
 
-  if (!crm_is_glx_version_ok(win)) goto force_win_cleanup;
-  if (!crm_setup_glx(win))         goto force_win_cleanup;
-  if (!crm_setup_window(win))      goto force_win_cleanup;
-  if (!crm_setup_glx_ctx(win))     goto force_win_cleanup;
-  if (!crm_init_rndr(&win->rndr))  goto force_win_cleanup;
- 
+  crm_assert(crm_is_glx_version_ok(win), { goto force_win_cleanup; });
+	crm_assert(crm_setup_glx(win),         { goto force_win_cleanup; });
+  crm_assert(crm_setup_window(win),      { goto force_win_cleanup; });
+  crm_assert(crm_setup_glx_ctx(win),	   { goto force_win_cleanup; });
+	crm_assert(crm_init_rndr(&win->rndr),  { goto force_win_cleanup; });
+
   win->is_open = true;
   crm_resize_window(win, win->w, win->h);
   while (win->is_open) {
-    if (!crm_handle_window_evts(win)) goto force_win_cleanup;
-    if (!crm_render_window(win))      goto force_win_cleanup;
+    crm_assert_msg(
+      crm_handle_win_evts(win),
+      { goto force_win_cleanup; },
+      "Failed to handle window events"
+    );
+    crm_assert_msg(
+      crm_render(&win->rndr),
+      { goto force_win_cleanup; },
+      "Failed to render"
+    );
   }
 
   return win;
@@ -279,6 +292,8 @@ force_win_cleanup:
 }
 
 void crm_deinit_window(CrmWindow *win) {
+  crm_assert_noop(win);
+
   crm_deinit_rndr(&win->rndr);
 
   glXMakeCurrent(win->xdisplay, 0, 0);
@@ -292,6 +307,8 @@ void crm_deinit_window(CrmWindow *win) {
 }
 
 bool crm_is_glx_version_ok(CrmWindow *win) {
+  crm_assert_noop(!win);
+  
   GLint major, minor = 0;
 	glXQueryVersion(win->xdisplay, &major, &minor);
 	if (major <= 1 && minor < 2) {
@@ -307,6 +324,8 @@ bool crm_is_glx_version_ok(CrmWindow *win) {
 }
 
 void crm_resize_window(CrmWindow *win, int w, int h) {
+  crm_assert_noop(win);
+  
   if (w > 0) {
     win->w = w;
   }

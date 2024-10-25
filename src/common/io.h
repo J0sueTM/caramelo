@@ -6,14 +6,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+// WARNING: It's your job to free the dest buffers after usage.
 
 /*
- * For the time of me writing this, I don't see a usecase for files
- * with more than a KB. If needed in the future, this should be
- * refactored.
+ * Get home dir and return the dir str length.
  */
-#define FILE_BUF_CAP 1024
+long crm_home_dir(char **dest);
 
-void crm_slurp_file(const char *filename, char *dest);
+/*
+ * Get resources dir and return the dir str length.
+ */
+long crm_rsrcs_dir(char **dest);
+
+#define FILE_BUF_CAP 1024 * 1000
+
+long crm_slurp_file(const char *filename, char **dest);
 
 #endif
