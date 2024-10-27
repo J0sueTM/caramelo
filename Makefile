@@ -1,12 +1,9 @@
-CC:=cc
-AR:=ar
 
-TGT_NAME:=caramelo
+TGT_NAME:=fossdaw
 TGT_DIR:=$(CURDIR)/target
+TGT:=${TGT_DIR}/${TGT_NAME}
 
 LIB_DIR:=${TGT_DIR}/lib
-LIB=${LIB_DIR}/lib${TGT_NAME}.a
-
 LIBS=liblog.c libX11
 
 VENDOR_DIR=$(CURDIR)/vendor
@@ -20,19 +17,13 @@ SRCS=$(shell find ${SRC_DIR} -type f -name *.c)
 OBJ_DIR:=${TGT_DIR}/obj
 OBJS:=$(patsubst ${SRC_DIR}/%.c, ${OBJ_DIR}/%.o, ${SRCS})
 
-EX_SRC_DIR:=$(CURDIR)/examples
-EX_SRCS=$(shell find ${EX_SRC_DIR} -type f -name *.c)
-
-EX_TGT_DIR:=${TGT_DIR}/examples
-EX_TGTS=$(patsubst ${EX_SRC_DIR}/%.c, ${EX_TGT_DIR}/%, ${EX_SRCS})
-
 TEST_SRC_DIR:=$(CURDIR)/tests
 TEST_SRCS=$(shell find ${TEST_SRC_DIR} -type f -name *.c ! -name all.c)
 
 TEST_TGT_DIR:=${TGT_DIR}/tests
 TEST_TGTS=$(patsubst ${TEST_SRC_DIR}/%.c, ${TEST_TGT_DIR}/%, ${TEST_SRCS})
 
-DEP_DIRS=${TGT_DIR} ${LIB_DIR} ${OBJ_DIR} ${EX_TGT_DIR} ${TEST_TGT_DIR}
+DEP_DIRS=${TGT_DIR} ${LIB_DIR} ${OBJ_DIR} ${TEST_TGT_DIR}
 DEPS=${DEP_DIRS} ${SUBMODULES}
 
 CC_FLAGS=-Wall -L${LIB_DIR} -llog -lX11 -lGL
@@ -42,20 +33,20 @@ else
 	CC_FLAGS+=-O3
 endif
 
-all: ${DEPS} ${VENDOR_LIBS} ${LIB}
+all: ${DEPS} ${VENDOR_LIBS} ${TGT}
 
-${LIB}: ${OBJS}
+${TGT}: ${OBJS}
 	@echo === building $(notdir $(basename $@)) ===
-	${AR} rcs $@ $^
+	$(CC) $^ -o $@ ${CC_FLAGS}
 
 ${OBJ_DIR}/%.o: ${SRC_DIR}/%.c
 	@echo === compiling $(notdir $(basename $@)) ===
 	@mkdir -p $(dir $@)
-	${CC} -c $< -o $@ ${CC_FLAGS}
+	$(CC) -c $^ -o $@ ${CC_FLAGS}
 
 ${LIB_DIR}/liblog.c.a:
 	@echo === building vendor log.c ===
-	${CC} -c ${VENDOR_DIR}/log.c/src/log.c -o ${OBJ_DIR}/log.c.o
+	$(CC) -c ${VENDOR_DIR}/log.c/src/log.c -o ${OBJ_DIR}/log.c.o
 	${AR} rcs $@ ${OBJ_DIR}/log.c.o
 	cp $@ ${LIB_DIR}/liblog.a
 
@@ -82,14 +73,14 @@ examples: ${DEP_DIRS} ${EX_TGTS}
 
 ${EX_TGT_DIR}/%: ${EX_SRC_DIR}/%.c ${LIB}
 	@echo === building example $(notdir $@) ===
-	${CC} -o $@ $< -lcaramelo ${CC_FLAGS}
+	$(CC) -o $@ $< -lfossdaw ${CC_FLAGS}
 
 tests: ${DEP_DIRS} ${TEST_TGTS}
 
 ${TEST_TGT_DIR}/%: ${TEST_SRC_DIR}/%.c ${LIB}
 	@echo === building test $(notdir $@) ===
 	mkdir -p $(dir $@)
-	${CC} -o $@ $< ${VENDOR_DIR}/munit/munit.c -lcaramelo ${CC_FLAGS}
+	$(CC) -o $@ $< ${VENDOR_DIR}/munit/munit.c -lfossdaw ${CC_FLAGS}
 
 GLOBAL_TEST=${TEST_TGT_DIR}/all
 all-tests: ${DEP_DIRS} ${TEST_TGTS} ${GLOBAL_TEST}
@@ -97,7 +88,7 @@ all-tests: ${DEP_DIRS} ${TEST_TGTS} ${GLOBAL_TEST}
 
 ${GLOBAL_TEST}: ${TEST_SRC_DIR}/all.c ${TEST_SRC_DIRS}
 	@echo === building global test ===
-	${CC} -o $@ $^ ${VENDOR_DIR}/munit/munit.c -lcaramelo ${CC_FLAGS}
+	$(CC) -o $@ $^ ${VENDOR_DIR}/munit/munit.c -lfossdaw ${CC_FLAGS}
 
 ${DEP_DIRS}:
 	@echo === creating dirs ===

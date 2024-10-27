@@ -1,7 +1,7 @@
-#include "./caramelo.h"
+#include "./fossdaw.h"
 
-GLXFBConfig crm_get_best_glx_fb_cfg(
-  CrmWindow *win,
+GLXFBConfig fd_get_best_glx_fb_cfg(
+  FDWindow *win,
   GLXFBConfig *fb_cfgs,
   int fb_cfg_count
 ) {
@@ -37,8 +37,8 @@ GLXFBConfig crm_get_best_glx_fb_cfg(
 	return fb_cfgs[best_fb_cfg_id];
 }
 
-bool crm_setup_glx(CrmWindow *win) {
-  crm_assert_noop(win);
+bool fd_setup_glx(FDWindow *win) {
+  fd_assert_noop(win);
 
   const GLint glx_attribs[] = {
     GLX_X_RENDERABLE,  true,
@@ -62,18 +62,18 @@ bool crm_setup_glx(CrmWindow *win) {
     glx_attribs,
     &fb_count
   );
-  crm_assert_msg(
+  fd_assert_msg(
     fb_cfgs,
     { return false; },
     "Failed to retrieve framebuffer config"
   );
 
-  win->glx_fb_cfg = crm_get_best_glx_fb_cfg(
+  win->glx_fb_cfg = fd_get_best_glx_fb_cfg(
     win,
     fb_cfgs,
     fb_count
   );
-  crm_assert_msg(
+  fd_assert_msg(
     win->glx_fb_cfg > 0,
     { return false; },
     "Failed to get best framebuffer config"
@@ -85,13 +85,13 @@ bool crm_setup_glx(CrmWindow *win) {
     win->xdisplay,
     win->glx_fb_cfg
   );
-  crm_assert_msg(
+  fd_assert_msg(
     win->xvisual_info,
     { return false; },
     "Failed to get visual info for framebuffer: %d",
     win->glx_fb_cfg
   );
-  crm_assert_msg(
+  fd_assert_msg(
     win->xscreen == win->xvisual_info->screen,
     { return false; },
     "Visual info from framebuffer %d has invalid screen id %d, expected %d",
@@ -103,8 +103,8 @@ bool crm_setup_glx(CrmWindow *win) {
   return true;
 }
 
-bool crm_setup_window(CrmWindow *win) {
-  crm_assert_noop(win);
+bool fd_setup_window(FDWindow *win) {
+  fd_assert_noop(win);
 
   win->xcolormap = XCreateColormap(
     win->xdisplay,
@@ -155,8 +155,8 @@ bool crm_setup_window(CrmWindow *win) {
   return true;
 }
 
-bool crm_setup_glx_ctx(CrmWindow *win) {
-  crm_assert_noop(win);
+bool fd_setup_glx_ctx(FDWindow *win) {
+  fd_assert_noop(win);
 
 	glXCreateContextAttribsARBProc glXCreateContextAttribsARB =
     (glXCreateContextAttribsARBProc)glXGetProcAddressARB(
@@ -208,7 +208,7 @@ bool crm_setup_glx_ctx(CrmWindow *win) {
   return true;
 }
 
-bool crm_handle_win_evts(CrmWindow *win) {
+bool fd_handle_win_evts(FDWindow *win) {
   if (XPending(win->xdisplay) <= 0) {
     goto skip_evt_handling;
   }
@@ -225,7 +225,7 @@ bool crm_handle_win_evts(CrmWindow *win) {
   case ConfigureNotify: {
     XConfigureEvent cfg_evt = evt.xconfigure;
     if (cfg_evt.width != win->w || cfg_evt.height != win->h) {
-      crm_resize_window(win, cfg_evt.width, cfg_evt.height);
+      fd_resize_window(win, cfg_evt.width, cfg_evt.height);
     }
   }
   default: {
@@ -236,24 +236,24 @@ skip_evt_handling:
   return true;
 }
 
-bool crm_render_window(CrmWindow *win) {
-  crm_assert_noop(win);
+bool fd_render_window(FDWindow *win) {
+  fd_assert_noop(win);
   glClear(GL_COLOR_BUFFER_BIT);
   glXSwapBuffers(win->xdisplay, win->xwin);
 
   return true;
 }
 
-CrmWindow *crm_init_window(int width, int height) {
-  CrmWindow *win = (CrmWindow *)calloc(1, sizeof(CrmWindow));
-  crm_assert(win, { goto force_win_cleanup; });
+FDWindow *fd_init_window(int width, int height) {
+  FDWindow *win = (FDWindow *)calloc(1, sizeof(FDWindow));
+  fd_assert(win, { goto force_win_cleanup; });
   win->x = 0;
   win->y = 0;
   win->w = width;
   win->h = height;
 
   win->xdisplay = XOpenDisplay(0);
-  crm_assert_msg(
+  fd_assert_msg(
     win->xdisplay,
     { goto force_win_cleanup; },
     "Failed to start X display"
@@ -261,22 +261,22 @@ CrmWindow *crm_init_window(int width, int height) {
   win->xscreen = DefaultScreen(win->xdisplay);
   log_debug("Started X display at screen %d", win->xscreen);
 
-  crm_assert(crm_is_glx_version_ok(win), { goto force_win_cleanup; });
-	crm_assert(crm_setup_glx(win),         { goto force_win_cleanup; });
-  crm_assert(crm_setup_window(win),      { goto force_win_cleanup; });
-  crm_assert(crm_setup_glx_ctx(win),	   { goto force_win_cleanup; });
-	crm_assert(crm_init_rndr(&win->rndr),  { goto force_win_cleanup; });
+  fd_assert(fd_is_glx_version_ok(win), { goto force_win_cleanup; });
+	fd_assert(fd_setup_glx(win),         { goto force_win_cleanup; });
+  fd_assert(fd_setup_window(win),      { goto force_win_cleanup; });
+  fd_assert(fd_setup_glx_ctx(win),	   { goto force_win_cleanup; });
+	fd_assert(fd_init_rndr(&win->rndr),  { goto force_win_cleanup; });
 
   win->is_open = true;
-  crm_resize_window(win, win->w, win->h);
+  fd_resize_window(win, win->w, win->h);
   while (win->is_open) {
-    crm_assert_msg(
-      crm_handle_win_evts(win),
+    fd_assert_msg(
+      fd_handle_win_evts(win),
       { goto force_win_cleanup; },
       "Failed to handle window events"
     );
-    crm_assert_msg(
-      crm_render(&win->rndr),
+    fd_assert_msg(
+      fd_render(&win->rndr),
       { goto force_win_cleanup; },
       "Failed to render"
     );
@@ -286,15 +286,15 @@ CrmWindow *crm_init_window(int width, int height) {
 
 force_win_cleanup:
   log_warn("Forcefully closing window");
-  crm_deinit_window(win);
+  fd_deinit_window(win);
 
   return NULL;
 }
 
-void crm_deinit_window(CrmWindow *win) {
-  crm_assert_noop(win);
+void fd_deinit_window(FDWindow *win) {
+  fd_assert_noop(win);
 
-  crm_deinit_rndr(&win->rndr);
+  fd_deinit_rndr(&win->rndr);
 
   glXMakeCurrent(win->xdisplay, 0, 0);
   glXDestroyContext(win->xdisplay, win->glx_ctx);
@@ -306,8 +306,8 @@ void crm_deinit_window(CrmWindow *win) {
   log_info("Closed window");
 }
 
-bool crm_is_glx_version_ok(CrmWindow *win) {
-  crm_assert_noop(!win);
+bool fd_is_glx_version_ok(FDWindow *win) {
+  fd_assert_noop(!win);
   
   GLint major, minor = 0;
 	glXQueryVersion(win->xdisplay, &major, &minor);
@@ -323,8 +323,8 @@ bool crm_is_glx_version_ok(CrmWindow *win) {
   return true;
 }
 
-void crm_resize_window(CrmWindow *win, int w, int h) {
-  crm_assert_noop(win);
+void fd_resize_window(FDWindow *win, int w, int h) {
+  fd_assert_noop(win);
   
   if (w > 0) {
     win->w = w;
@@ -333,4 +333,10 @@ void crm_resize_window(CrmWindow *win, int w, int h) {
     win->h = h;
   }
   glViewport(0, 0, win->w, win->h);
+}
+
+int main(void) {
+  FDWindow *win = fd_init_window(800, 500);
+  fd_assert_msg_noop(win, "Failed to start fossdaw :(");
+  fd_deinit_window(win);
 }

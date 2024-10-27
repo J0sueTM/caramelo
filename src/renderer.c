@@ -22,20 +22,20 @@ void gl_msg_callback(
   );
 }
 
-bool crm_load_shaders(CrmShader *shaders) {
-  crm_assert(shaders, { return false; });
+bool fd_load_shaders(FDShader *shaders) {
+  fd_assert(shaders, { return false; });
   // char *home_dir;
-  // long home_dir_len = crm_home_dir(&home_dir);
+  // long home_dir_len = fd_home_dir(&home_dir);
   // log_debug("%s len = %d", home_dir, home_dir_len);
   // free(home_dir);
   //  
   // char *rsrcs_dir;
-  // long rsrcs_dir_len = crm_rsrcs_dir(&rsrcs_dir);
+  // long rsrcs_dir_len = fd_rsrcs_dir(&rsrcs_dir);
   // log_debug("%s len = %d", rsrcs_dir, rsrcs_dir_len);
   // free(rsrcs_dir);
   //  
   // char *foobar = 0;
-  // crm_slurp_file(
+  // fd_slurp_file(
   //   "/home/jtm/dev/caramelo/resources/shaders/default.shader",
   //   &foobar
   // );
@@ -46,10 +46,10 @@ bool crm_load_shaders(CrmShader *shaders) {
   return true;
 }
 
-bool crm_init_rndr(CrmRndr *rndr) {
-  crm_assert(rndr, { return false; });
+bool fd_init_rndr(FDRndr *rndr) {
+  fd_assert(rndr, { return false; });
 
-  crm_assert_msg(
+  fd_assert_msg(
     gladLoadGLLoader((GLADloadproc)glXGetProcAddress),
     { return false; },
     "Failed to initialize GLAD"
@@ -62,18 +62,23 @@ bool crm_init_rndr(CrmRndr *rndr) {
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(gl_msg_callback, 0);
 
-  crm_assert(crm_load_shaders(rndr->shaders), { return false; });
+  // fd_assert(fd_load_shaders(rndr->shaders), { return false; });
+
+  // load shaders
+  {
+    
+  }
 
   log_info("Initialized OpenGL renderer");
   return true;
 }
 
-void crm_deinit_rndr(CrmRndr *rndr) {
-  crm_assert_noop(rndr);
+void fd_deinit_rndr(FDRndr *rndr) {
+  fd_assert_noop(rndr);
 }
 
-bool crm_render(CrmRndr *rndr) {
-  crm_assert(rndr, { return false; });
+bool fd_render(FDRndr *rndr) {
+  fd_assert(rndr, { return false; });
 
   return true;
 }

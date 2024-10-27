@@ -1,5 +1,5 @@
-#ifndef CRM_RENDERER_H
-#define CRM_RENDERER_H
+#ifndef FD_RENDERER_H
+#define FD_RENDERER_H
 
 #include "../vendor/log.c/src/log.h"
 #include "./glad/glad.h"
@@ -20,15 +20,15 @@ typedef struct {
   char name[SHADER_NAME_CAP];
   char vtx_src[SHADER_BUF_CAP];
   char frag_src[SHADER_BUF_CAP];
-} CrmShader;
+} FDShader;
 
 #define SHADER_CAP 32
 typedef struct {
-  CrmShader shaders[SHADER_CAP];
-} CrmRndr;
+  FDShader shaders[SHADER_CAP];
+} FDRndr;
 
-bool crm_init_rndr(CrmRndr *rndr);
-void crm_deinit_rndr(CrmRndr *rndr);
-bool crm_render(CrmRndr *rndr);
+bool fd_init_rndr(FDRndr *rndr);
+void fd_deinit_rndr(FDRndr *rndr);
+bool fd_render(FDRndr *rndr);
 
 #endif

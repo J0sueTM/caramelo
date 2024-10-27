@@ -1,5 +1,5 @@
-#ifndef CRM_H
-#define CRM_H
+#ifndef FD_H 
+#define FD_H
 
 #include "../vendor/log.c/src/log.h"
 #include "../vendor/x11/include/X11/Xlib.h"
@@ -12,7 +12,7 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 
-typedef unsigned long CrmColor;
+typedef unsigned long FDColor;
 
 typedef struct {
   Window xwin;
@@ -24,28 +24,28 @@ typedef struct {
   GLXContext glx_ctx;
   Colormap xcolormap;
 
-  CrmColor border_color;
-  CrmColor bg_color;
+  FDColor border_color;
+  FDColor bg_color;
 
   char *title;
   int w, h;
   int x, y;
   bool is_open;
 
-  CrmRndr rndr;
-} CrmWindow;
+  FDRndr rndr;
+} FDWindow;
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(
-  Display*,
+  Display *,
   GLXFBConfig,
   GLXContext,
   Bool,
-  const int*
+  const int *
 );
 
-CrmWindow *crm_init_window(int width, int height);
-void crm_deinit_window(CrmWindow *win);
-bool crm_is_glx_version_ok(CrmWindow *win);
-void crm_resize_window(CrmWindow *win, int w, int h);
+FDWindow *fd_init_window(int width, int height);
+void fd_deinit_window(FDWindow *win);
+bool fd_is_glx_version_ok(FDWindow *win);
+void fd_resize_window(FDWindow *win, int w, int h);
 
 #endif
