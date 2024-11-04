@@ -16,12 +16,16 @@
 // taken from dirent's fname buf cap
 #define FILENAME_BUF_CAP UINT8_MAX
 
+// Using 256 as size limit to comply with dirent later on.
+uint8_t fd_home_dir(char **dest);
+uint8_t fd_rsrcs_dir(char **dest);
+
 // Returns the qtt. of inner files found.
 // Padding is the current file padding, which needs to be known since
 // it recurses.
 uint16_t fd_load_dir(
   const char *dirname,
-  char *dest[FILE_CAP][FILENAME_BUF_CAP],
+  char **dest,
   uint8_t pad 
 );
  

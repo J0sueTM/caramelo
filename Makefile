@@ -35,6 +35,9 @@ endif
 
 all: ${DEPS} ${VENDOR_LIBS} ${TGT}
 
+run: all
+	${TGT}
+
 ${TGT}: ${OBJS}
 	@echo === building $(notdir $(basename $@)) ===
 	$(CC) $^ -o $@ ${CC_FLAGS}

@@ -22,30 +22,6 @@ void gl_msg_callback(
   );
 }
 
-bool fd_load_shaders(FDShader *shaders) {
-  fd_assert(shaders, { return false; });
-  // char *home_dir;
-  // long home_dir_len = fd_home_dir(&home_dir);
-  // log_debug("%s len = %d", home_dir, home_dir_len);
-  // free(home_dir);
-  //  
-  // char *rsrcs_dir;
-  // long rsrcs_dir_len = fd_rsrcs_dir(&rsrcs_dir);
-  // log_debug("%s len = %d", rsrcs_dir, rsrcs_dir_len);
-  // free(rsrcs_dir);
-  //  
-  // char *foobar = 0;
-  // fd_slurp_file(
-  //   "/home/jtm/dev/caramelo/resources/shaders/default.shader",
-  //   &foobar
-  // );
-  //
-  // log_debug("file = \n%s", foobar);
-  // free(foobar);
-
-  return true;
-}
-
 bool fd_init_rndr(FDRndr *rndr) {
   fd_assert(rndr, { return false; });
 
@@ -62,13 +38,42 @@ bool fd_init_rndr(FDRndr *rndr) {
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(gl_msg_callback, 0);
 
-  // fd_assert(fd_load_shaders(rndr->shaders), { return false; });
-
   // load shaders
   {
+    char *rsrcs_dir;
+    uint8_t rsrc_dir_len = fd_rsrcs_dir(&rsrcs_dir);
+    fd_assert(rsrc_dir_len > 0, { goto fail_load_shaders; })
+
+    // rsrcs_dir + "/shaders"
+    uint8_t shader_dir_len = rsrc_dir_len + 8;
+    fd_assert_msg(
+      shader_dir_len < (FILENAME_BUF_CAP - 1),
+      { goto fail_load_shaders; },
+      "Shaders dir name exceeds the limit of 256 chars. "
+    );
+
+    char *rsrc_fnames = 0;
+    uint16_t fcount = fd_load_dir(rsrcs_dir, &rsrc_fnames, 0);
+    fd_assert_noop(fcount > 0);
+    for (int i = 0; i < fcount; ++i) {
+      char *shader_fname = (rsrc_fnames + (i * FILENAME_BUF_CAP));
+
+      log_debug("file n. %d: %s", i, shader_fname);
+    }
+
+    free(rsrc_fnames);
+    free(rsrcs_dir);
     
+    goto ok;
+
+fail_load_shaders:
+    log_error("Failed to load shaders");
+    if (rsrc_fnames) free(rsrc_fnames);
+    if (rsrcs_dir) free(rsrcs_dir);
+    return false;
   }
 
+ok:
   log_info("Initialized OpenGL renderer");
   return true;
 }

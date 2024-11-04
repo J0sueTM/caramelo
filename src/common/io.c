@@ -1,6 +1,5 @@
 #include "./io.h"
 
-// Using 256b as size limit to comply with dirent later on.
 uint8_t fd_home_dir(char **dest) {
 #ifdef CRM_HOME
   uint8_t home_dir_len = strlen(CRM_HOME);
@@ -42,7 +41,7 @@ uint8_t fd_rsrcs_dir(char **dest) {
   uint8_t dir_len = home_dir_len + 10 + 1;
   fd_assert_msg_noop(
     (dir_len < 256),
-    "Resource dir length %d exceeds limit of 256 bytes",
+    "Resources dir size %d exceeds limit of 256 bytes",
     dir_len
   );
   *dest = calloc(dir_len, sizeof(char));
@@ -56,11 +55,16 @@ uint8_t fd_rsrcs_dir(char **dest) {
 
 uint16_t fd_load_dir(
   const char *dirname,
-  char *dest[FILE_CAP][FILENAME_BUF_CAP],
+  char **dest,
   uint8_t pad
 ) {
   fd_assert_noop(dirname);
-  fd_assert_noop(*dest);
+
+  // allocate when starting dir lookup
+  if (pad == 0 && !*dest) {
+    *dest = calloc(FILE_CAP * FILENAME_BUF_CAP, sizeof(char));
+    fd_assert_noop(*dest);
+  }
 
   DIR *dir = opendir(dirname);
   fd_assert_noop(dir);
@@ -86,15 +90,45 @@ uint16_t fd_load_dir(
       *(inner_dirname + strlen(dirname)) = '/';
       strcpy((inner_dirname + strlen(dirname) + 1), ent->d_name);
 
-      log_debug("recursing inner dir %s", inner_dirname);
-      fcount += fd_load_dir(inner_dirname, dest, fcount);
+      log_debug("Recursing inner dir %s", inner_dirname);
+      uint16_t load_count = fd_load_dir(
+        inner_dirname,
+        dest,
+        (fcount + pad)
+      );
+      fd_assert_msg(
+        load_count > 0,
+        { goto fail_load_dir; },
+        "Dir %s failed to load files. If it's empty, please delete it",
+        inner_dirname 
+      );
+
+      fcount += load_count;
       
       continue;
     }
 
-    log_debug("Found file %s", ent->d_name);
-    char *fname_buf = *dest[fcount + pad];
-    strcpy(fname_buf, ent->d_name);
+    // Resizing to 2 bytes to prevent overflowing.
+    uint16_t dir_len = strlen(dirname);
+    uint16_t file_len = strlen(ent->d_name);
+    // + 1 for the '/', + 1 for the '\0'.
+    uint16_t abs_file_len = dir_len + file_len + 2;
+    fd_assert_msg(
+      (abs_file_len + 2) < FILENAME_BUF_CAP, 
+      { goto fail_load_dir; },
+      "Lenght of file %s (%s bytes) exceeds the limit of 256 chars",
+      ent->d_name,
+      file_len,
+      abs_file_len
+    );
+
+    char *fname_buf = (*dest) + fcount + pad;
+    // dirname
+    strcpy(fname_buf, dirname);
+    *(fname_buf + dir_len) = '/';
+    // filename 
+    strcpy((fname_buf + dir_len + 1), ent->d_name);
+    log_debug("Found file %s", fname_buf);
 
     ++fcount;
   }
@@ -102,6 +136,14 @@ uint16_t fd_load_dir(
 
   log_info("Loaded %d files from dir %s", fcount, dirname);
   return fcount;
+
+fail_load_dir:
+  // After going back up from the recursion, the first call is the only 
+  // who should clean the filename buffers.
+  if (pad == 0 && *dest) {
+    free(*dest);
+  }
+  return 0;
 }
 
 void log_slurp_error(
